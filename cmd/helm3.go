@@ -274,23 +274,7 @@ func (d *diffCmd) template(isUpgrade bool) ([]byte, error) {
 			// See the fllowing link for more details:
 			// - https://github.com/databus23/helm-diff/pull/458
 			// - https://github.com/helm/helm/pull/9426#issuecomment-1501005666
-			if d.dryRunMode == "server" {
-				// This is for security reasons!
-				//
-				// We give helm-template the additional cluster access for the helm `lookup` function
-				// only if the user has explicitly requested it by --dry-run=server,
-				//
-				// In other words, although helm-diff-upgrade implies limited cluster access by default,
-				// helm-diff-upgrade without a --dry-run flag does NOT imply
-				// full cluster-access via helm-template --dry-run=server!
-				flags = append(flags, "--dry-run=server")
-			} else {
-				// Since helm-diff 3.9.0 and helm 3.13.0, we pass --dry-run=client to `helm template` by default.
-				// This doesn't make any difference for helm-diff itself,
-				// because helm-template w/o flags is equivalent to helm-template --dry-run=client.
-				// See https://github.com/helm/helm/pull/9426#discussion_r1181397259
-				flags = append(flags, "--dry-run=client")
-			}
+			flags = append(flags, "--dry-run=server")
 		}
 
 		subcmd = "template"
