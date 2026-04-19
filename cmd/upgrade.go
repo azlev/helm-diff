@@ -218,12 +218,16 @@ func (d *diffCmd) runHelm3() error {
 
 	var err error
 
+	fmt.Fprintf(os.Stderr, "[v3.8.2-debug] dryRun=%v allowUnreleased=%v install=%v release=%q storageNS=%q namespace=%q\n",
+		d.dryRun, d.allowUnreleased, d.install, d.release, d.storageNamespace, d.namespace)
 	if !d.dryRun {
 		releaseManifest, err = getRelease(d.release, d.storageNamespace)
+		fmt.Fprintf(os.Stderr, "[v3.8.2-debug] getRelease err=%v len(manifest)=%d\n", err, len(releaseManifest))
 	}
 
 	var newInstall bool
 	if err != nil && strings.Contains(err.Error(), "release: not found") {
+		fmt.Fprintf(os.Stderr, "[v3.8.2-debug] release not found, isAllowUnreleased=%v\n", d.isAllowUnreleased())
 		if d.isAllowUnreleased() {
 			fmt.Printf("********************\n\n\tRelease was not present in Helm.  Diff will show entire contents as new.\n\n********************\n")
 			newInstall = true
@@ -234,11 +238,14 @@ func (d *diffCmd) runHelm3() error {
 		}
 	}
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "[v3.8.2-debug] unhandled error: %v\n", err)
 		return fmt.Errorf("Failed to get release %s in namespace %s: %s", d.release, d.namespace, err)
 	}
 
+	fmt.Fprintf(os.Stderr, "[v3.8.2-debug] calling template(isUpgrade=%v)\n", !newInstall)
 	installManifest, err := d.template(!newInstall)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "[v3.8.2-debug] template err=%v\n", err)
 		return fmt.Errorf("Failed to render chart: %s", err)
 	}
 
@@ -265,10 +272,13 @@ func (d *diffCmd) runHelm3() error {
 	}
 
 	currentSpecs := make(map[string]*manifest.MappingResult)
+	fmt.Fprintf(os.Stderr, "[v3.8.2-debug] post-template: newInstall=%v dryRun=%v noHooks=%v threeWayMerge=%v\n", newInstall, d.dryRun, d.noHooks, d.threeWayMerge)
 	if !newInstall && !d.dryRun {
 		if !d.noHooks && !d.threeWayMerge {
+			fmt.Fprintf(os.Stderr, "[v3.8.2-debug] calling getHooks(release=%q, namespace=%q) NOTE: uses namespace not storageNamespace=%q\n", d.release, d.namespace, d.storageNamespace)
 			hooks, err := getHooks(d.release, d.namespace)
 			if err != nil {
+				fmt.Fprintf(os.Stderr, "[v3.8.2-debug] getHooks FAILED: %v\n", err)
 				return err
 			}
 			releaseManifest = append(releaseManifest, hooks...)

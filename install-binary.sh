@@ -3,7 +3,7 @@
 # Shamelessly copied from https://github.com/technosophos/helm-template
 
 PROJECT_NAME="helm-diff"
-PROJECT_GH="rsafonseca/$PROJECT_NAME"
+PROJECT_GH="azlev/$PROJECT_NAME"
 export GREP_COLOR="never"
 
 # Convert HELM_BIN and HELM_PLUGIN_DIR to unix if cygpath is

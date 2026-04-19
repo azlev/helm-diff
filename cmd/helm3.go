@@ -66,8 +66,11 @@ func getRelease(release, namespace string) ([]byte, error) {
 	if namespace != "" {
 		args = append(args, "--namespace", namespace)
 	}
+	fmt.Fprintf(os.Stderr, "[v3.8.2-debug] getRelease: %s %s\n", os.Getenv("HELM_BIN"), strings.Join(args, " "))
 	cmd := exec.Command(os.Getenv("HELM_BIN"), args...)
-	return outputWithRichError(cmd)
+	out, err := outputWithRichError(cmd)
+	fmt.Fprintf(os.Stderr, "[v3.8.2-debug] getRelease result: err=%v len(out)=%d\n", err, len(out))
+	return out, err
 }
 
 func getHooks(release, namespace string) ([]byte, error) {
@@ -75,8 +78,11 @@ func getHooks(release, namespace string) ([]byte, error) {
 	if namespace != "" {
 		args = append(args, "--namespace", namespace)
 	}
+	fmt.Fprintf(os.Stderr, "[v3.8.2-debug] getHooks: %s %s\n", os.Getenv("HELM_BIN"), strings.Join(args, " "))
 	cmd := exec.Command(os.Getenv("HELM_BIN"), args...)
-	return outputWithRichError(cmd)
+	out, err := outputWithRichError(cmd)
+	fmt.Fprintf(os.Stderr, "[v3.8.2-debug] getHooks result: err=%v len(out)=%d\n", err, len(out))
+	return out, err
 }
 
 func getRevision(release string, revision int, namespace string) ([]byte, error) {
@@ -102,6 +108,7 @@ func getChart(release, namespace string) (string, error) {
 }
 
 func (d *diffCmd) template(isUpgrade bool) ([]byte, error) {
+	fmt.Fprintf(os.Stderr, "[v3.8.2-debug] template() called: isUpgrade=%v useUpgradeDryRun=%v dryRun=%v\n", isUpgrade, d.useUpgradeDryRun, d.dryRun)
 	flags := []string{}
 	if d.devel {
 		flags = append(flags, "--devel")
@@ -131,6 +138,8 @@ func (d *diffCmd) template(isUpgrade bool) ([]byte, error) {
 	// Let's simulate that in helm-diff.
 	// See https://medium.com/@kcatstack/understand-helm-upgrade-flags-reset-values-reuse-values-6e58ac8f127e
 	shouldDefaultReusingValues := isUpgrade && len(d.values) == 0 && len(d.stringValues) == 0 && len(d.valueFiles) == 0 && len(d.fileValues) == 0
+	fmt.Fprintf(os.Stderr, "[v3.8.2-debug] reuseValues=%v shouldDefault=%v resetValues=%v dryRun=%v values=%d stringValues=%d valueFiles=%d fileValues=%d\n",
+		d.reuseValues, shouldDefaultReusingValues, d.resetValues, d.dryRun, len(d.values), len(d.stringValues), len(d.valueFiles), len(d.fileValues))
 	if (d.reuseValues || shouldDefaultReusingValues) && !d.resetValues && !d.dryRun {
 		tmpfile, err := os.CreateTemp("", "existing-values")
 		if err != nil {
@@ -243,12 +252,17 @@ func (d *diffCmd) template(isUpgrade bool) ([]byte, error) {
 	args := []string{subcmd, d.release, d.chart}
 	args = append(args, flags...)
 
+	fmt.Fprintf(os.Stderr, "[v3.8.2-debug] executing: %s %s\n", os.Getenv("HELM_BIN"), strings.Join(args, " "))
 	cmd := exec.Command(os.Getenv("HELM_BIN"), args...)
 	out, err := outputWithRichError(cmd)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[v3.8.2-debug] command error: %v\n", err)
+	}
 	return filter(out), err
 }
 
 func (d *diffCmd) writeExistingValues(f *os.File) error {
+	fmt.Fprintf(os.Stderr, "[v3.8.2-debug] writeExistingValues: helm get values %s --all --output yaml (no namespace flag!)\n", d.release)
 	cmd := exec.Command(os.Getenv("HELM_BIN"), "get", "values", d.release, "--all", "--output", "yaml")
 	debugPrint("Executing %s", strings.Join(cmd.Args, " "))
 	defer func() {
