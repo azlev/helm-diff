@@ -277,16 +277,12 @@ func (d *diffCmd) runHelm3() error {
 
 	var err error
 
-	fmt.Fprintf(os.Stderr, "[helm-diff-debug] clusterAccessAllowed=%v allowUnreleased=%v install=%v dryRunMode=%q release=%q storageNS=%q namespace=%q\n",
-		d.clusterAccessAllowed(), d.allowUnreleased, d.install, d.dryRunMode, d.release, d.storageNamespace, d.namespace)
 	if d.clusterAccessAllowed() {
 		releaseManifest, err = getRelease(d.release, d.storageNamespace)
-		fmt.Fprintf(os.Stderr, "[helm-diff-debug] getRelease err=%v\n", err)
 	}
 
 	var newInstall bool
 	if err != nil && strings.Contains(err.Error(), "release: not found") {
-		fmt.Fprintf(os.Stderr, "[helm-diff-debug] release not found, isAllowUnreleased=%v\n", d.isAllowUnreleased())
 		if d.isAllowUnreleased() {
 			fmt.Printf("********************\n\n\tRelease was not present in Helm.  Diff will show entire contents as new.\n\n********************\n")
 			newInstall = true
@@ -297,7 +293,6 @@ func (d *diffCmd) runHelm3() error {
 		}
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[helm-diff-debug] unhandled error: %v\n", err)
 		return fmt.Errorf("Failed to get release %s in namespace %s: %w", d.release, d.namespace, err)
 	}
 
@@ -331,7 +326,7 @@ func (d *diffCmd) runHelm3() error {
 	currentSpecs := make(map[string]*manifest.MappingResult)
 	if !newInstall && d.clusterAccessAllowed() {
 		if !d.noHooks && !d.threeWayMerge {
-			hooks, err := getHooks(d.release, d.namespace)
+			hooks, err := getHooks(d.release, d.storageNamespace)
 			if err != nil {
 				return err
 			}
