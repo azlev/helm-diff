@@ -43,6 +43,7 @@ type diffCmd struct {
 	enableDNS                bool
 	SkipSchemaValidation     bool
 	namespace                string // namespace to assume the release to be installed into. Defaults to the current kube config namespace.
+	storageNamespace         string // namespace where helm release metadata is stored, when different from the deployment namespace.
 	valueFiles               valueFiles
 	values                   []string
 	stringValues             []string
@@ -115,7 +116,11 @@ perform.
 
 func newChartCommand() *cobra.Command {
 	diff := diffCmd{
-		namespace: os.Getenv("HELM_NAMESPACE"),
+		namespace:        os.Getenv("HELM_NAMESPACE"),
+		storageNamespace: os.Getenv("HELM_STORAGE_NAMESPACE"),
+	}
+	if len(diff.storageNamespace) == 0 {
+		diff.storageNamespace = diff.namespace
 	}
 	unknownFlags := os.Getenv("HELM_DIFF_IGNORE_UNKNOWN_FLAGS") == envTrue
 
