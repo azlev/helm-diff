@@ -426,8 +426,8 @@ func (d *diffCmd) writeExistingValues(f *os.File, all bool) error {
 	if all {
 		args = append(args, "--all")
 	}
-	if d.namespace != "" {
-		args = append(args, "--namespace", d.namespace)
+	if d.storageNamespace != "" {
+		args = append(args, "--namespace", d.storageNamespace)
 	}
 	if d.kubeContext != "" {
 		args = append(args, "--kube-context", d.kubeContext)

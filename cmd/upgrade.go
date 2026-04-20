@@ -276,7 +276,7 @@ func (d *diffCmd) runHelm3() error {
 	}
 
 	if d.clusterAccessAllowed() {
-		releaseManifest, err = getRelease(d.release, d.namespace, d.kubeContext)
+		releaseManifest, err = getRelease(d.release, d.storageNamespace, d.kubeContext)
 	}
 
 	var newInstall bool
@@ -302,7 +302,7 @@ func (d *diffCmd) runHelm3() error {
 	if d.threeWayMerge || d.takeOwnership {
 		actionConfig = new(action.Configuration)
 		localEnv := prepareEnvSettings(d.kubeContext)
-		if err := actionConfig.Init(localEnv.RESTClientGetter(), localEnv.Namespace(), os.Getenv("HELM_DRIVER")); err != nil {
+		if err := actionConfig.Init(localEnv.RESTClientGetter(), d.storageNamespace, os.Getenv("HELM_DRIVER")); err != nil {
 			log.Fatalf("%+v", err)
 		}
 		if err := actionConfig.KubeClient.IsReachable(); err != nil {
@@ -320,7 +320,7 @@ func (d *diffCmd) runHelm3() error {
 	currentSpecs := make(map[string]*manifest.MappingResult)
 	if !newInstall && d.clusterAccessAllowed() {
 		if !d.noHooks && !d.threeWayMerge {
-			hooks, err := getHooks(d.release, d.namespace, d.kubeContext)
+			hooks, err := getHooks(d.release, d.storageNamespace, d.kubeContext)
 			if err != nil {
 				return err
 			}
