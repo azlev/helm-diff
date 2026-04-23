@@ -269,18 +269,25 @@ func (d *diffCmd) runHelm3() error {
 
 	var err error
 
+	fmt.Fprintf(os.Stderr, "[debug] runHelm3: namespace=%q storageNamespace=%q release=%q clusterAccess=%v allowUnreleased=%v dryRunMode=%q takeOwnership=%v threeWayMerge=%v\n",
+		d.namespace, d.storageNamespace, d.release, d.clusterAccessAllowed(), d.isAllowUnreleased(), d.dryRunMode, d.takeOwnership, d.threeWayMerge)
+
 	if d.takeOwnership {
-		// We need to do a three way merge between the manifests of the new
-		// release, the manifests of the old release and what is currently deployed
+		fmt.Fprintf(os.Stderr, "[debug] takeOwnership=true, enabling threeWayMerge\n")
 		d.threeWayMerge = true
 	}
 
 	if d.clusterAccessAllowed() {
+		fmt.Fprintf(os.Stderr, "[debug] calling getRelease(release=%q, storageNS=%q)\n", d.release, d.storageNamespace)
 		releaseManifest, err = getRelease(d.release, d.storageNamespace, d.kubeContext)
+		fmt.Fprintf(os.Stderr, "[debug] getRelease: err=%v len(manifest)=%d\n", err, len(releaseManifest))
+	} else {
+		fmt.Fprintf(os.Stderr, "[debug] clusterAccessAllowed=false, skipping getRelease\n")
 	}
 
 	var newInstall bool
 	if err != nil && strings.Contains(err.Error(), "release: not found") {
+		fmt.Fprintf(os.Stderr, "[debug] release not found, isAllowUnreleased=%v\n", d.isAllowUnreleased())
 		if d.isAllowUnreleased() {
 			newInstall = true
 			err = nil
@@ -290,16 +297,21 @@ func (d *diffCmd) runHelm3() error {
 		}
 	}
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "[debug] unhandled getRelease error: %v\n", err)
 		return fmt.Errorf("Failed to get release %s in namespace %s: %w", d.release, d.namespace, err)
 	}
 
+	fmt.Fprintf(os.Stderr, "[debug] calling template(isUpgrade=%v)\n", !newInstall)
 	installManifest, err := d.template(!newInstall)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "[debug] template failed: %v\n", err)
 		return fmt.Errorf("Failed to render chart: %w", err)
 	}
+	fmt.Fprintf(os.Stderr, "[debug] template success, len(installManifest)=%d\n", len(installManifest))
 
 	var actionConfig *action.Configuration
 	if d.threeWayMerge || d.takeOwnership {
+		fmt.Fprintf(os.Stderr, "[debug] initializing actionConfig with storageNS=%q\n", d.storageNamespace)
 		actionConfig = new(action.Configuration)
 		localEnv := prepareEnvSettings(d.kubeContext)
 		if err := actionConfig.Init(localEnv.RESTClientGetter(), d.storageNamespace, os.Getenv("HELM_DRIVER")); err != nil {
@@ -311,6 +323,7 @@ func (d *diffCmd) runHelm3() error {
 	}
 
 	if d.threeWayMerge {
+		fmt.Fprintf(os.Stderr, "[debug] running three-way merge\n")
 		releaseManifest, installManifest, err = manifest.Generate(actionConfig, releaseManifest, installManifest)
 		if err != nil {
 			return fmt.Errorf("unable to generate manifests: %w", err)
@@ -320,10 +333,13 @@ func (d *diffCmd) runHelm3() error {
 	currentSpecs := make(map[string]*manifest.MappingResult)
 	if !newInstall && d.clusterAccessAllowed() {
 		if !d.noHooks && !d.threeWayMerge {
+			fmt.Fprintf(os.Stderr, "[debug] calling getHooks(release=%q, storageNS=%q)\n", d.release, d.storageNamespace)
 			hooks, err := getHooks(d.release, d.storageNamespace, d.kubeContext)
 			if err != nil {
+				fmt.Fprintf(os.Stderr, "[debug] getHooks failed: %v\n", err)
 				return err
 			}
+			fmt.Fprintf(os.Stderr, "[debug] getHooks success, len(hooks)=%d\n", len(hooks))
 			releaseManifest = append(releaseManifest, hooks...)
 		}
 		if d.includeTests {
