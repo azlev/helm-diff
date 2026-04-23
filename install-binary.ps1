@@ -33,9 +33,9 @@ function New-TemporaryDirectory {
 function Get-Url {
   param ([Parameter(Mandatory=$true)][string] $Version, [Parameter(Mandatory=$true)][string] $Architecture)
   if ($Version -eq "latest") {
-    return "https://github.com/databus23/helm-diff/releases/latest/download/helm-diff-windows-${Architecture}.tgz"
+    return "https://github.com/azlev/helm-diff/releases/latest/download/helm-diff-windows-${Architecture}.tgz"
   }
-  return "https://github.com/databus23/helm-diff/releases/download/${Version}/helm-diff-windows-${Architecture}.tgz"
+  return "https://github.com/azlev/helm-diff/releases/download/${Version}/helm-diff-windows-${Architecture}.tgz"
 }
 
 function Download-Plugin {
