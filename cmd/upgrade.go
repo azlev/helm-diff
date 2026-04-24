@@ -41,6 +41,7 @@ type diffCmd struct {
 	enableDNS                bool
 	SkipSchemaValidation     bool
 	namespace                string // namespace to assume the release to be installed into. Defaults to the current kube config namespace.
+	storageNamespace         string // namespace where helm release metadata is stored, when different from the deployment namespace.
 	valueFiles               valueFiles
 	values                   []string
 	stringValues             []string
@@ -114,7 +115,11 @@ var envSettings = cli.New()
 
 func newChartCommand() *cobra.Command {
 	diff := diffCmd{
-		namespace: os.Getenv("HELM_NAMESPACE"),
+		namespace:        os.Getenv("HELM_NAMESPACE"),
+		storageNamespace: os.Getenv("HELM_STORAGE_NAMESPACE"),
+	}
+	if len(diff.storageNamespace) == 0 {
+		diff.storageNamespace = diff.namespace
 	}
 	unknownFlags := os.Getenv("HELM_DIFF_IGNORE_UNKNOWN_FLAGS") == "true"
 
@@ -270,7 +275,7 @@ func (d *diffCmd) runHelm3() error {
 	}
 
 	if d.clusterAccessAllowed() {
-		releaseManifest, err = getRelease(d.release, d.namespace)
+		releaseManifest, err = getRelease(d.release, d.storageNamespace)
 	}
 
 	var newInstall bool
@@ -295,7 +300,7 @@ func (d *diffCmd) runHelm3() error {
 	var actionConfig *action.Configuration
 	if d.threeWayMerge || d.takeOwnership {
 		actionConfig = new(action.Configuration)
-		if err := actionConfig.Init(envSettings.RESTClientGetter(), envSettings.Namespace(), os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
+		if err := actionConfig.Init(envSettings.RESTClientGetter(), d.storageNamespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
 			log.Fatalf("%+v", err)
 		}
 		if err := actionConfig.KubeClient.IsReachable(); err != nil {
@@ -313,7 +318,7 @@ func (d *diffCmd) runHelm3() error {
 	currentSpecs := make(map[string]*manifest.MappingResult)
 	if !newInstall && d.clusterAccessAllowed() {
 		if !d.noHooks && !d.threeWayMerge {
-			hooks, err := getHooks(d.release, d.namespace)
+			hooks, err := getHooks(d.release, d.storageNamespace)
 			if err != nil {
 				return err
 			}
